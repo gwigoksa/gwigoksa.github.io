@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>분류 체계 만들기 웹앱</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 좌측 패널 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>분류 체계</h1>
+            </div>
+
+            <!-- 검색 -->
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="노드 검색..."
+                    autocomplete="off"
+                >
+                <div id="searchResults" class="search-results"></div>
+            </div>
+
+            <!-- 탭 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="add">추가</button>
+                <button class="tab-btn" data-tab="edit">편집</button>
+                <button class="tab-btn" data-tab="data">데이터</button>
+                <button class="tab-btn" data-tab="settings">설정</button>
+            </div>
+
+            <!-- 탭 1: 노드/단계 추가 -->
+            <div class="tab-content active" id="add-tab">
+                <h3>새 노드 추가</h3>
+                <form id="nodeForm">
+                    <div class="form-group">
+                        <label for="nodeName">이름</label>
+                        <input 
+                            type="text" 
+                            id="nodeName" 
+                            placeholder="예: 해석학"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taxonomyLevel">분류 단계</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="taxonomyLevel" required>
+                                <option value="">-- 단계 선택 --</option>
+                            </select>
+                            <button type="button" id="addLevelBtn" class="btn-secondary">
+                                + 새 단계
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>부모 노드 (선택사항, 여러개 선택 가능)</label>
+                        <div id="nodeParentCheckboxes" style="
+                            background: #f9f9f9;
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            padding: 8px;
+                            max-height: 150px;
+                            overflow-y: auto;
+                        "></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nodeDesc">설명</label>
+                        <textarea 
+                            id="nodeDesc" 
+                            placeholder="예: 해석학은 수학의 한 분야로, 미적분학과 관련된 이론과 응용을 다룹니다."
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nodeColor">색상</label>
+                        <input 
+                            type="color" 
+                            id="nodeColor" 
+                            value="#3498db"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn-primary">노드 추가</button>
+                </form>
+
+                <hr>
+
+                <h3>새 분류 단계 추가</h3>
+                <form id="levelForm">
+                    <div class="form-group">
+                        <label for="levelName">단계 이름</label>
+                        <input 
+                            type="text" 
+                            id="levelName" 
+                            placeholder="예: 정의, 정리, 공리, 예제"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn-primary">단계 추가</button>
+                </form>
+            </div>
+
+            <!-- 탭 2: 노드 편집 -->
+            <div class="tab-content" id="edit-tab">
+                <h3>노드 편집</h3>
+                <p style="color: #888; font-size: 12px;">
+                    그래프에서 노드를 클릭하면 여기에 표시됩니다.
+                </p>
+
+                <form id="editForm" style="display: none;">
+                    <div class="form-group">
+                        <label>노드 ID</label>
+                        <input type="text" id="editId" readonly style="background: #f0f0f0; color: #999;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editName">이름</label>
+                        <input type="text" id="editName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editLevel">분류 단계</label>
+                        <select id="editLevel" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>부모 노드 (여러개 선택 가능)</label>
+                        <div id="editParentCheckboxes" style="
+                            background: #f9f9f9;
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            padding: 8px;
+                            max-height: 150px;
+                            overflow-y: auto;
+                        "></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDesc">설명</label>
+                        <textarea id="editDesc" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editColor">색상</label>
+                        <input type="color" id="editColor">
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn-primary">저장</button>
+                        <button type="button" id="deleteNodeBtn" class="btn-danger">삭제</button>
+                        <button type="button" id="cancelEditBtn" class="btn-secondary">취소</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 탭 3: 데이터 -->
+            <div class="tab-content" id="data-tab">
+                <h3>📊 데이터 관리</h3>
+
+                <button id="exportBtn" class="btn-primary" style="width: 100%; margin-bottom: 8px;">
+                    📥 JSON 내보내기
+                </button>
+
+                <button id="importBtn" class="btn-primary" style="width: 100%; margin-bottom: 8px;">
+                    📤 JSON 불러오기
+                </button>
+
+                <button id="resetBtn" class="btn-danger" style="width: 100%; margin-bottom: 8px;">
+                    🔄 초기화 (샘플 데이터)
+                </button>
+
+                <button id="clearBtn" class="btn-danger" style="width: 100%; margin-bottom: 8px;">
+                    🗑️ 모든 데이터 삭제
+                </button>
+
+                <div id="statsBox" style="
+                    margin-top: 16px;
+                    padding: 12px;
+                    background: #f5f5f5;
+                    border-radius: 4px;
+                    font-size: 13px;
+                ">
+                    <div>노드: <strong id="statNodes">0</strong></div>
+                    <div>분류 단계: <strong id="statLevels">0</strong></div>
+                </div>
+
+                <hr style="margin-top: 20px;">
+
+                <h3>사용 방법</h3>
+                <div style="font-size: 12px; color: #666; line-height: 1.6;">
+                    <ul>
+                        <li><strong>노드 추가:</strong> 좌측 "추가" 탭에서 이름과 단계 선택</li>
+                        <li><strong>부모 연결:</strong> "부모 노드" 체크박스에서 선택</li>
+                        <li><strong>드래그:</strong> 그래프에서 노드를 드래그해 위치 이동</li>
+                        <li><strong>선택:</strong> 노드 클릭하면 좌측 "편집" 탭 표시</li>
+                        <li><strong>검색:</strong> 상단 검색창으로 빠르게 찾기</li>
+                        <li><strong>저장:</strong> 모든 변경은 자동으로 저장됨</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 탭 4: 설정 -->
+            <div class="tab-content" id="settings-tab">
+                <h3>⚙️ 그래프 설정</h3>
+
+                <div class="form-group">
+                    <label for="repulsionForceSlider">노드 반발력</label>
+                    <input 
+                        type="range" 
+                        id="repulsionForceSlider" 
+                        min="0.1" 
+                        max="5" 
+                        step="0.1" 
+                        value="1"
+                    >
+                    <small id="repulsionForceValue" style="color: #888;">1.0</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="repulsionDistanceSlider">반발 범위 (px)</label>
+                    <input 
+                        type="range" 
+                        id="repulsionDistanceSlider" 
+                        min="50" 
+                        max="400" 
+                        step="10" 
+                        value="200"
+                    >
+                    <small id="repulsionDistanceValue" style="color: #888;">200</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="nodeSizeSlider">노드 크기</label>
+                    <input 
+                        type="range" 
+                        id="nodeSizeSlider" 
+                        min="15" 
+                        max="60" 
+                        step="5" 
+                        value="30"
+                    >
+                    <small id="nodeSizeValue" style="color: #888;">30</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="linkWidthSlider">연결선 두께</label>
+                    <input 
+                        type="range" 
+                        id="linkWidthSlider" 
+                        min="1" 
+                        max="5" 
+                        step="0.5" 
+                        value="2"
+                    >
+                    <small id="linkWidthValue" style="color: #888;">2</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="springStrengthSlider">간선 장력</label>
+                    <input 
+                        type="range" 
+                        id="springStrengthSlider" 
+                        min="0" 
+                        max="3" 
+                        step="0.1" 
+                        value="1"
+                    >
+                    <small id="springStrengthValue" style="color: #888;">1.0</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input 
+                            type="checkbox" 
+                            id="showArrowsCheckbox"
+                            style="width: 18px; height: 18px; cursor: pointer;"
+                        >
+                        <span>화살표 표시</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="panSensitivitySlider">우클릭 화면이동 감도</label>
+                    <input 
+                        type="range" 
+                        id="panSensitivitySlider" 
+                        min="0.3" 
+                        max="2" 
+                        step="0.1" 
+                        value="1"
+                    >
+                    <small id="panSensitivityValue" style="color: #888;">1.0</small>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 중앙 캔버스 -->
+        <main class="canvas-area">
+            <svg id="canvas" class="graph-canvas"></svg>
+            
+            <!-- 줌/팬 도움말 -->
+            <div class="canvas-help">
+                <div class="help-item">🖱️ 마우스휠: 확대/축소</div>
+                <div class="help-item">👆 우클릭 드래그: 화면 이동</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 파일 입력 (숨김) -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <script src="script.js"></script>
+</body>
+</html>
