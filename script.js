@@ -459,11 +459,35 @@ function updateTaxonomySelects() {
 /**
  * 부모 노드 선택 체크박스 생성 (추가 탭)
  */
+/**
+ * 부모 노드 선택 체크박스 생성 (필터링 지원)
+ */
 function updateParentCheckboxes() {
     const container = document.getElementById('nodeParentCheckboxes');
+    const searchInput = document.getElementById('nodeParentSearchInput');
+    const searchValue = (searchInput?.value || '').toLowerCase();
+
     container.innerHTML = '';
 
-    state.nodes.forEach((node) => {
+    // 검색어로 필터링된 노드만 표시
+    const filteredNodes = state.nodes.filter((node) =>
+        node.name.toLowerCase().includes(searchValue) ||
+        node.taxonomyLevel.toLowerCase().includes(searchValue)
+    );
+
+    // 검색 결과 없음
+    if (filteredNodes.length === 0 && searchValue) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.fontSize = '13px';
+        emptyMsg.style.color = '#999';
+        emptyMsg.style.padding = '8px';
+        emptyMsg.textContent = '검색 결과 없음';
+        container.appendChild(emptyMsg);
+        return;
+    }
+
+    // 모든 노드 또는 필터링된 노드 표시
+    filteredNodes.forEach((node) => {
         const label = document.createElement('label');
         label.style.display = 'flex';
         label.style.alignItems = 'center';
@@ -488,36 +512,57 @@ function updateParentCheckboxes() {
 }
 
 /**
- * 편집 탭 부모 노드 선택 체크박스 생성
+ * 편집 탭 부모 노드 선택 체크박스 생성 (필터링 지원)
  */
 function updateEditParentCheckboxes(currentNodeId) {
     const container = document.getElementById('editParentCheckboxes');
+    const searchInput = document.getElementById('editParentSearchInput');
+    const searchValue = (searchInput?.value || '').toLowerCase();
+
     container.innerHTML = '';
 
-    state.nodes
+    // 현재 노드 제외하고 검색어로 필터링된 노드만 표시
+    const filteredNodes = state.nodes
         .filter((n) => n.id !== currentNodeId)
-        .forEach((node) => {
-            const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
-            label.style.marginBottom = '6px';
-            label.style.cursor = 'pointer';
+        .filter((node) =>
+            node.name.toLowerCase().includes(searchValue) ||
+            node.taxonomyLevel.toLowerCase().includes(searchValue)
+        );
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = node.id;
-            checkbox.className = 'edit-parent-checkbox';
-            checkbox.style.marginRight = '8px';
-            checkbox.style.cursor = 'pointer';
+    // 검색 결과 없음
+    if (filteredNodes.length === 0 && searchValue) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.fontSize = '13px';
+        emptyMsg.style.color = '#999';
+        emptyMsg.style.padding = '8px';
+        emptyMsg.textContent = '검색 결과 없음';
+        container.appendChild(emptyMsg);
+        return;
+    }
 
-            const text = document.createElement('span');
-            text.textContent = `${node.name} (${node.taxonomyLevel})`;
-            text.style.fontSize = '13px';
+    // 모든 노드 또는 필터링된 노드 표시
+    filteredNodes.forEach((node) => {
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.marginBottom = '6px';
+        label.style.cursor = 'pointer';
 
-            label.appendChild(checkbox);
-            label.appendChild(text);
-            container.appendChild(label);
-        });
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = node.id;
+        checkbox.className = 'edit-parent-checkbox';
+        checkbox.style.marginRight = '8px';
+        checkbox.style.cursor = 'pointer';
+
+        const text = document.createElement('span');
+        text.textContent = `${node.name} (${node.taxonomyLevel})`;
+        text.style.fontSize = '13px';
+
+        label.appendChild(checkbox);
+        label.appendChild(text);
+        container.appendChild(label);
+    });
 }
 
 // ============================================
@@ -845,6 +890,9 @@ function showEditForm(node) {
     document.getElementById('editDesc').value = node.description;
     document.getElementById('editColor').value = node.color;
 
+    // 부모 노드 검색창 초기화
+    document.getElementById('editParentSearchInput').value = '';
+
     // 부모 노드 체크박스 업데이트 및 선택
     updateEditParentCheckboxes(node.id);
     
@@ -862,6 +910,7 @@ function showEditForm(node) {
  */
 function hideEditForm() {
     document.getElementById('editForm').style.display = 'none';
+    document.getElementById('editParentSearchInput').value = '';
     state.selectedNodeId = null;
     render();
 }
@@ -960,6 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('taxonomyLevel').value = '';
         document.getElementById('nodeDesc').value = '';
         document.getElementById('nodeColor').value = '#3498db';
+        document.getElementById('nodeParentSearchInput').value = '';
+        updateParentCheckboxes();
         document.querySelectorAll('.parent-checkbox').forEach((cb) => (cb.checked = false));
 
         updateParentCheckboxes();
@@ -983,6 +1034,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (levelName) {
             addTaxonomyLevel(levelName);
         }
+    });
+
+    // 부모 노드 검색 (추가 탭)
+    document.getElementById('nodeParentSearchInput').addEventListener('input', () => {
+        updateParentCheckboxes();
+    });
+
+    // 부모 노드 검색 (편집 탭)
+    document.getElementById('editParentSearchInput').addEventListener('input', () => {
+        const currentNodeId = document.getElementById('editId').value;
+        updateEditParentCheckboxes(currentNodeId);
     });
 
     // 편집 폼 제출
